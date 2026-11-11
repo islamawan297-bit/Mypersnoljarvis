@@ -1,0 +1,25 @@
+# Render Blueprint for the OpenJarvis API server (repo root wrapper).
+# Points to the nested OpenJarvis-main/ directory in this repository.
+services:
+  - type: web
+    name: openjarvis-server
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./OpenJarvis-main/deploy/docker/Dockerfile
+    dockerContext: ./OpenJarvis-main
+    dockerCommand: serve --host 0.0.0.0 --port 10000 --engine cloud
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PORT
+        value: "10000"
+      - key: OPENJARVIS_CORS_ORIGINS
+        value: https://frontend-omega-two-10.vercel.app
+      - key: OPENJARVIS_API_KEY
+        generateValue: true
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: OPENJARVIS_HOME
+        value: /home/openjarvis/.openjarvis
+

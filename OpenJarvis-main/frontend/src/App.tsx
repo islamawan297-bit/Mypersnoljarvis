@@ -66,20 +66,21 @@ export default function App() {
     return () => clearInterval(interval);
   }, [importOverlay]);
 
-  // Fetch models on mount
+  // Fetch models on mount and when backend connection settings change
   useEffect(() => {
+    setModelsLoading(true);
     fetchModels()
       .then((m) => {
         setModels(m);
       })
       .catch(() => setModels([]))
       .finally(() => setModelsLoading(false));
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [settings.apiUrl, settings.apiKey, setModels, setModelsLoading]);
 
   // Fetch server info
   useEffect(() => {
-    fetchServerInfo().then(setServerInfo).catch(() => {});
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    fetchServerInfo().then(setServerInfo).catch(() => setServerInfo(null));
+  }, [settings.apiUrl, settings.apiKey, setServerInfo]);
 
   // Poll savings and optionally share to Supabase
   useEffect(() => {
@@ -113,7 +114,7 @@ export default function App() {
             });
           }
         })
-        .catch(() => {});
+        .catch(() => { });
     refresh();
     const interval = setInterval(refresh, 30000);
     return () => clearInterval(interval);

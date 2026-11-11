@@ -1573,6 +1573,30 @@ class TestModelsEndpoint:
         assert [item["id"] for item in resp.json()["data"]] == [model]
         assert resp.json()["data"][0]["owned_by"] == "litellm"
 
+    def test_cloud_only_models_are_listed_when_no_local_models(self):
+        """Cloud-only deployments (e.g. Render) expose configured cloud models."""
+        models = ["gemini-2.5-flash", "gpt-4o-mini"]
+        engine = _make_engine(models=models)
+        engine.engine_id = "cloud"
+        app = create_app(
+            engine,
+            models[0],
+            engine_name="cloud",
+            config=_test_config(),
+        )
+
+        with patch(
+            "openjarvis.server.cloud_router.list_local_models",
+            new_callable=AsyncMock,
+        ) as list_local_models:
+            list_local_models.return_value = []
+            client = TestClient(app)
+            resp = client.get("/v1/models")
+
+        assert resp.status_code == 200
+        assert [item["id"] for item in resp.json()["data"]] == models
+        assert [item["owned_by"] for item in resp.json()["data"]] == ["cloud", "cloud"]
+
     def test_litellm_provider_model_streams_through_active_engine(self):
         """A LiteLLM ``provider/model`` ID must not bypass its engine."""
         model = "groq/llama-3.3-70b-versatile"

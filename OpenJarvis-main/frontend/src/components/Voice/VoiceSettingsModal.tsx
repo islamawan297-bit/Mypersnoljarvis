@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import {
   X,
   Volume2,
@@ -43,19 +43,20 @@ export function VoiceSettingsModal({
   // Test speaker state
   const [isTestingSpeaker, setIsTestingSpeaker] = useState(false);
 
-  useEffect(() => {
-    return () => {
-      // Stop mic test if modal unmounts
-      stopMicTest();
-      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-      }
-    };
+  const stopMicTest = useCallback(() => {
+    if (testMicAnimRef.current) {
+      cancelAnimationFrame(testMicAnimRef.current);
+      testMicAnimRef.current = null;
+    }
+    if (testMicStreamRef.current) {
+      testMicStreamRef.current.getTracks().forEach((t) => t.stop());
+      testMicStreamRef.current = null;
+    }
+    setIsTestingMic(false);
+    setMicVolumeLevel(0);
   }, []);
 
-  if (!isOpen) return null;
-
-  const startMicTest = async () => {
+  const startMicTest = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       testMicStreamRef.current = stream;
@@ -86,22 +87,9 @@ export function VoiceSettingsModal({
       setIsTestingMic(false);
       setMicVolumeLevel(0);
     }
-  };
+  }, []);
 
-  const stopMicTest = () => {
-    if (testMicAnimRef.current) {
-      cancelAnimationFrame(testMicAnimRef.current);
-      testMicAnimRef.current = null;
-    }
-    if (testMicStreamRef.current) {
-      testMicStreamRef.current.getTracks().forEach((t) => t.stop());
-      testMicStreamRef.current = null;
-    }
-    setIsTestingMic(false);
-    setMicVolumeLevel(0);
-  };
-
-  const handleTestSpeaker = () => {
+  const handleTestSpeaker = useCallback(() => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
     if (isTestingSpeaker) {
       window.speechSynthesis.cancel();
@@ -142,7 +130,19 @@ export function VoiceSettingsModal({
 
     setIsTestingSpeaker(true);
     window.speechSynthesis.speak(utterance);
-  };
+  }, [isTestingSpeaker, settings.voiceLanguage, settings.voiceSpeed, settings.voiceVolume, settings.voiceVoiceId]);
+
+  useEffect(() => {
+    return () => {
+      // Stop mic test if modal unmounts
+      stopMicTest();
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, [stopMicTest]);
+
+  if (!isOpen) return null;
 
   const urduVoices = availableVoices.filter((v) => v.isUrdu);
   const englishVoices = availableVoices.filter((v) => v.isEnglish);

@@ -1208,6 +1208,10 @@ async def list_models(request: Request) -> ModelListResponse:
     ]
     if not model_ids:
         model_ids = await list_local_models()
+    if not model_ids and all_ids:
+        # Cloud-only deployment (e.g. Render/Railway with --engine cloud and no
+        # Ollama): surface available non-embed models so the web UI is usable.
+        model_ids = [m for m in all_ids if not is_embed_only_model(m)]
 
     # Keep embed-only models out of the chat model picker. They still work for
     # memory/retrieval via the embedder path; putting them in /v1/models made
@@ -1221,7 +1225,11 @@ async def list_models(request: Request) -> ModelListResponse:
                 owned_by=(
                     "litellm"
                     if _engine_key_for_model(engine, mid) == "litellm"
-                    else "openjarvis"
+                    else (
+                        "cloud"
+                        if is_cloud_model(mid)
+                        else "openjarvis"
+                    )
                 ),
             )
             for mid in model_ids

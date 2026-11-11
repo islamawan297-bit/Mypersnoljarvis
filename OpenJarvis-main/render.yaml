@@ -15,28 +15,29 @@ services:
     # Pin a cloud model as well as the engine. The repository's default model
     # is local-only, so omitting this would make `jarvis serve` reject the
     # otherwise healthy cloud engine during startup.
-    dockerCommand: serve --host 0.0.0.0 --port 10000 --engine cloud --model gpt-4o-mini
+    dockerCommand: serve --host 0.0.0.0 --port 10000 --engine cloud
     healthCheckPath: /health
     autoDeploy: true
     envVars:
       # Force the cloud engine path. The free Render plan has no GPU and the
-      # bundled local backends (Ollama/vLLM) cannot run here. The command above
-      # selects the OpenAI-backed cloud engine and a model it can serve.
+      # bundled local backends (Ollama/vLLM) cannot run here.
 
       # Keep Render's expected public port aligned with the fixed Docker
       # command above. Change both values together when customizing the port.
       - key: PORT
         value: "10000"
 
+      # Allow requests from your deployed Vercel frontend origin.
+      - key: OPENJARVIS_CORS_ORIGINS
+        value: https://frontend-omega-two-10.vercel.app
+
       # Auth for the OpenJarvis API itself. Required because the server refuses
       # to bind to a non-loopback host without an API key (check_bind_safety).
       - key: OPENJARVIS_API_KEY
         generateValue: true
 
-      # Required at initial Blueprint creation. Render's `sync: false` fields
-      # are operator-supplied secrets; using one provider here keeps the
-      # one-click contract deterministic instead of incorrectly requiring a
-      # key for every supported cloud provider.
+      # Supply at least one cloud provider key in Render Dashboard (e.g.
+      # GEMINI_API_KEY, OPENAI_API_KEY, ANTHROPIC_API_KEY, or OPENROUTER_API_KEY).
       - key: OPENAI_API_KEY
         sync: false
 
